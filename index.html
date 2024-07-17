@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Financial Planning Manager Tool</title>
+    <title>Advanced Financial Planning Analytics Tool</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -19,52 +21,26 @@
             border-radius: 10px;
             box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         }
-        h1 {
+        h1, h2 {
             color: #333;
-            text-align: center;
         }
         .section {
             margin-bottom: 30px;
         }
-        .section h2 {
-            color: #666;
-            border-bottom: 2px solid #ddd;
-            padding-bottom: 10px;
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
         }
-        .task-list {
-            list-style-type: none;
-            padding: 0;
+        .data-input {
+            margin-top: 20px;
         }
-        .task-list li {
-            display: flex;
-            justify-content: space-between;
-            background-color: #f9f9f9;
-            padding: 10px;
-            border: 1px solid #ddd;
-            margin-bottom: 5px;
-            border-radius: 5px;
+        .data-input textarea {
+            width: 100%;
+            height: 100px;
         }
-        .task-list li span {
-            flex-grow: 1;
-        }
-        .task-list li button {
-            background-color: #ff4d4d;
-            border: none;
-            color: white;
-            padding: 5px 10px;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        .task-list li button:hover {
-            background-color: #ff1a1a;
-        }
-        .add-task input {
-            padding: 10px;
-            width: calc(100% - 110px);
-            border: 1px solid #ddd;
-            border-radius: 5px;
-        }
-        .add-task button {
+        .data-input button {
+            margin-top: 10px;
             padding: 10px;
             background-color: #4CAF50;
             color: white;
@@ -72,62 +48,163 @@
             cursor: pointer;
             border-radius: 5px;
         }
-        .add-task button:hover {
-            background-color: #45a049;
+        .insights {
+            background-color: #f9f9f9;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Financial Planning Manager Tool</h1>
+        <h1>Advanced Financial Planning Analytics Tool</h1>
         
         <div class="section">
-            <h2>Financial Dashboard</h2>
-            <p>Placeholder for financial metrics, charts, and KPIs.</p>
-        </div>
-        
-        <div class="section">
-            <h2>Task Manager</h2>
-            <div class="add-task">
-                <input type="text" id="taskInput" placeholder="Add a new task...">
-                <button onclick="addTask()">Add Task</button>
+            <h2>Dynamic Financial Dashboard</h2>
+            <div class="chart-container">
+                <canvas id="financialChart"></canvas>
             </div>
-            <ul class="task-list" id="taskList"></ul>
+            <div class="data-input">
+                <h3>Input Financial Data (CSV format)</h3>
+                <textarea id="csvInput" placeholder="Date,Revenue,Expenses,Profit
+2023-01,1000000,800000,200000
+2023-02,1100000,850000,250000
+..."></textarea>
+                <button onclick="updateChart()">Update Chart</button>
+            </div>
+            <div class="insights" id="insights">
+                <h3>Financial Insights</h3>
+                <p>Input data to generate insights.</p>
+            </div>
         </div>
         
         <div class="section">
-            <h2>Quick Reference</h2>
-            <p><strong>Financial Modeling:</strong> Excel, Power BI, Tableau</p>
-            <p><strong>Reporting Systems:</strong> SAP, Oracle, Hyperion</p>
-            <p><strong>Useful Links:</strong></p>
-            <ul>
-                <li><a href="https://www.point72.com" target="_blank">Point72 Official Website</a></li>
-                <li><a href="https://www.builtinnyc.com/job/manager-financial-planning/250328" target="_blank">Job Description</a></li>
-            </ul>
+            <h2>Predictive Analysis</h2>
+            <p>Based on the current trend, the projected revenue for next month is: <span id="prediction"></span></p>
+        </div>
+        
+        <div class="section">
+            <h2>Risk Assessment</h2>
+            <p>Current risk level: <span id="riskLevel"></span></p>
+            <p>Top risk factors:</p>
+            <ul id="riskFactors"></ul>
         </div>
     </div>
 
     <script>
-        function addTask() {
-            var taskInput = document.getElementById('taskInput');
-            var taskText = taskInput.value.trim();
-            if (taskText === '') return;
+        let financialData = [];
+        let chart;
 
-            var taskList = document.getElementById('taskList');
-            var li = document.createElement('li');
-            var span = document.createElement('span');
-            span.textContent = taskText;
-            var button = document.createElement('button');
-            button.textContent = 'Delete';
-            button.onclick = function() {
-                taskList.removeChild(li);
-            };
+        function updateChart() {
+            const csvInput = document.getElementById('csvInput').value;
+            Papa.parse(csvInput, {
+                complete: function(results) {
+                    financialData = results.data.slice(1); // Remove header row
+                    renderChart();
+                    generateInsights();
+                    predictNextMonth();
+                    assessRisk();
+                }
+            });
+        }
 
-            li.appendChild(span);
-            li.appendChild(button);
-            taskList.appendChild(li);
+        function renderChart() {
+            const ctx = document.getElementById('financialChart').getContext('2d');
+            const labels = financialData.map(row => row[0]);
+            const revenue = financialData.map(row => parseFloat(row[1]));
+            const expenses = financialData.map(row => parseFloat(row[2]));
+            const profit = financialData.map(row => parseFloat(row[3]));
 
-            taskInput.value = '';
+            if (chart) {
+                chart.destroy();
+            }
+
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Revenue',
+                            data: revenue,
+                            borderColor: 'rgb(75, 192, 192)',
+                            tension: 0.1
+                        },
+                        {
+                            label: 'Expenses',
+                            data: expenses,
+                            borderColor: 'rgb(255, 99, 132)',
+                            tension: 0.1
+                        },
+                        {
+                            label: 'Profit',
+                            data: profit,
+                            borderColor: 'rgb(54, 162, 235)',
+                            tension: 0.1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+        }
+
+        function generateInsights() {
+            const insightsDiv = document.getElementById('insights');
+            const lastMonth = financialData[financialData.length - 1];
+            const prevMonth = financialData[financialData.length - 2];
+
+            const revenueDiff = parseFloat(lastMonth[1]) - parseFloat(prevMonth[1]);
+            const expensesDiff = parseFloat(lastMonth[2]) - parseFloat(prevMonth[2]);
+            const profitDiff = parseFloat(lastMonth[3]) - parseFloat(prevMonth[3]);
+
+            let insights = `<h3>Financial Insights</h3>
+                            <p>Compared to the previous month:</p>
+                            <ul>
+                                <li>Revenue ${revenueDiff >= 0 ? 'increased' : 'decreased'} by $${Math.abs(revenueDiff).toFixed(2)}</li>
+                                <li>Expenses ${expensesDiff >= 0 ? 'increased' : 'decreased'} by $${Math.abs(expensesDiff).toFixed(2)}</li>
+                                <li>Profit ${profitDiff >= 0 ? 'increased' : 'decreased'} by $${Math.abs(profitDiff).toFixed(2)}</li>
+                            </ul>`;
+
+            insightsDiv.innerHTML = insights;
+        }
+
+        function predictNextMonth() {
+            const revenues = financialData.map(row => parseFloat(row[1]));
+            const avgGrowth = revenues.slice(1).reduce((acc, curr, index) => 
+                acc + (curr - revenues[index]) / revenues[index], 0) / (revenues.length - 1);
+            
+            const lastRevenue = revenues[revenues.length - 1];
+            const prediction = lastRevenue * (1 + avgGrowth);
+
+            document.getElementById('prediction').textContent = `$${prediction.toFixed(2)}`;
+        }
+
+        function assessRisk() {
+            const profits = financialData.map(row => parseFloat(row[3]));
+            const avgProfit = profits.reduce((a, b) => a + b, 0) / profits.length;
+            const volatility = Math.sqrt(profits.reduce((acc, profit) => 
+                acc + Math.pow(profit - avgProfit, 2), 0) / profits.length);
+
+            let riskLevel;
+            if (volatility < avgProfit * 0.1) riskLevel = 'Low';
+            else if (volatility < avgProfit * 0.2) riskLevel = 'Medium';
+            else riskLevel = 'High';
+
+            document.getElementById('riskLevel').textContent = riskLevel;
+
+            const riskFactors = [
+                'Market volatility',
+                'Regulatory changes',
+                'Operational inefficiencies',
+                'Competitive pressure'
+            ];
+
+            const riskFactorsList = document.getElementById('riskFactors');
+            riskFactorsList.innerHTML = riskFactors.map(factor => `<li>${factor}</li>`).join('');
         }
     </script>
 </body>
